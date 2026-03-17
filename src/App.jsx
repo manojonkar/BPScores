@@ -251,4 +251,25 @@ export default function BPApp() {
                   <div className="text-7xl font-black mb-2">{auditResults.score}%</div>
                   <p className="text-slate-500 text-[10px] font-bold leading-relaxed mb-8 uppercase tracking-widest">Efficiency Benchmark</p>
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-800 pt-6">
-                    <div><div className="text-[10px] font-bold text-slate-500 uppercase mb-1">High Value</div><div className="text-xl font-black text-green-400">{aud
+                    <div><div className="text-[10px] font-bold text-slate-500 uppercase mb-1">High Value</div><div className="text-xl font-black text-green-400">{auditResults.strategic}h</div></div>
+                    <div><div className="text-[10px] font-bold text-slate-500 uppercase mb-1">Leakage</div><div className="text-xl font-black text-red-400">{auditResults.waste}h</div></div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-xl border-l-4 border-l-blue-600">
+                  <h4 className="font-black text-slate-900 mb-4 flex items-center gap-2 text-xs uppercase tracking-widest"><Zap size={14} className="text-blue-600 fill-blue-600"/> Coaching Insight</h4>
+                  <div className="text-sm text-slate-600 leading-relaxed space-y-4 font-medium">
+                    {energy.nfrChasing > 3 && <p>🚨 <span className="text-slate-900 font-bold">The NFR Standard:</span> Chasing people for {energy.nfrChasing} hours is a signal that your accountability systems are leaking energy. Imagine if this time was reinvested in your top priority.</p>}
+                    {energy.mtgQuality < 70 && <p>💡 <span className="text-slate-900 font-bold">Meeting Pivot:</span> Many of your meetings are for information sharing, not decisions. Can these become 5-minute written updates?</p>}
+                    {!energy.block1 || !energy.block2 ? <p>⏳ <span className="text-slate-900 font-bold">The 2x2 Challenge:</span> You haven't secured your 4 hours of Thinking Time. This is your most valuable work—protect it like a board meeting.</p> : <p className="text-green-600 font-bold">✅ You are modeling 'Architect Leadership' by protecting your thinking blocks. This builds organizational clarity.</p>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
