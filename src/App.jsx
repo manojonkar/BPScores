@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Radar } from 'react-chartjs-2';
 import { 
   Trophy, Activity, Zap, Target, AlertCircle, 
   RefreshCcw, BarChart3, Scissors, 
-  LayoutDashboard, Plus, Trash2, Clock, Timer, CheckCircle2, HelpCircle, ChevronRight, Download, Mail, Globe, Users, Briefcase
+  LayoutDashboard, Plus, Trash2, Clock, Timer, CheckCircle2, HelpCircle, ChevronRight, Download, Mail, Globe, Users, Briefcase, FileText
 } from 'lucide-react';
 import {
   Chart as ChartJS, RadialLinearScale, PointElement, 
@@ -45,20 +45,19 @@ const DIMENSIONS = ["Leadership Clarity", "Strategic Focus", "Initiative Discipl
 
 export default function BPApp() {
   const [activeTab, setActiveTab] = useState('assessment');
-  const [userRole, setUserRole] = useState(null); // 'ceo' or 'employee'
+  const [userRole, setUserRole] = useState(null); 
   const [quizView, setQuizView] = useState('landing'); 
   const [answers, setAnswers] = useState({});
   const [currentIdx, setCurrentIdx] = useState(0);
   
-  // Refined Energy Audit State
   const [energy, setEnergy] = useState({
     block1: false, block2: false, mtgHours: 15, mtgQuality: 60,
-    nfrChasing: 5, peopleStrategic: 5, peopleOperational: 5, reactive: 10
+    nfrChasing: 5, peopleStrategic: 5, peopleOperational: 5, reactive: 5
   });
 
+  // --- LOGIC: ASSESSMENT ---
   const handleAnswer = (value) => {
-    const newAnswers = { ...answers, [QUESTIONS[currentIdx].id]: value };
-    setAnswers(newAnswers);
+    setAnswers({ ...answers, [QUESTIONS[currentIdx].id]: value });
     if (currentIdx < QUESTIONS.length - 1) setCurrentIdx(currentIdx + 1);
     else setQuizView('results');
   };
@@ -73,28 +72,25 @@ export default function BPApp() {
 
   const totalScore = Object.values(answers).reduce((a, b) => a + b, 0);
 
-  const getStatus = (score) => {
-    const max = 125;
-    if (score <= 50) return { label: "IDLE", color: "text-gray-500", desc: "Strategic Awakening Required" };
-    if (score <= 75) return { label: "BUSY", color: "text-red-600", desc: "The Activity Trap" };
-    if (score <= 100) return { label: "EFFICIENT", color: "text-blue-600", desc: "Functional Stability" };
-    return { label: "HIGH PERFORMANCE", color: "text-green-600", desc: "Exceptional Alignment" };
-  };
-
-  const handleDownload = () => {
-    window.print();
-  };
+  // --- LOGIC: ENERGY AUDIT ---
+  const auditResults = useMemo(() => {
+    const totalPossibleStrategic = (energy.block1 ? 2 : 0) + (energy.block2 ? 2 : 0) + (energy.mtgHours * (energy.mtgQuality/100)) + energy.peopleStrategic;
+    const totalWaste = (energy.mtgHours * (1 - energy.mtgQuality/100)) + energy.nfrChasing + energy.peopleOperational + energy.reactive;
+    const totalHours = totalPossibleStrategic + totalWaste;
+    const capacityScore = totalHours > 0 ? Math.round((totalPossibleStrategic / totalHours) * 100) : 0;
+    return { strategic: totalPossibleStrategic.toFixed(1), waste: totalWaste.toFixed(1), score: capacityScore, total: totalHours.toFixed(1) };
+  }, [energy]);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-20 print:bg-white print:pb-0">
       
-      {/* HEADER & BRANDING */}
+      {/* BRANDING HEADER */}
       <header className="bg-white border-b border-slate-100 p-4 sticky top-0 z-50 shadow-sm print:relative">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-6">
             <div className="flex flex-col">
-                <span className="text-[10px] font-black text-red-600 tracking-[0.2em] uppercase">Management Innovations</span>
-                <span className="text-[8px] font-bold text-slate-400 tracking-widest uppercase">Vision to Implementation</span>
+                <span className="text-[10px] font-black text-red-600 tracking-[0.2em] uppercase leading-none">Management Innovations</span>
+                <span className="text-[8px] font-bold text-slate-400 tracking-widest uppercase mt-1">Vision to Implementation</span>
             </div>
             <div className="h-8 w-[1px] bg-slate-200 hidden md:block"></div>
             <div className="hidden md:flex items-center gap-2">
@@ -102,9 +98,8 @@ export default function BPApp() {
                 <span className="text-[8px] font-bold text-slate-500 uppercase leading-tight w-20">Extraordinary Organizations</span>
             </div>
           </div>
-          
           <div className="flex gap-2 no-print">
-            <button onClick={() => {setQuizView('landing'); setActiveTab('assessment');}} className={`px-4 py-2 rounded-lg font-bold text-xs transition ${activeTab === 'assessment' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-900'}`}>The Assessment</button>
+            <button onClick={() => setActiveTab('assessment')} className={`px-4 py-2 rounded-lg font-bold text-xs transition ${activeTab === 'assessment' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-900'}`}>Assessment</button>
             <button onClick={() => setActiveTab('energy')} className={`px-4 py-2 rounded-lg font-bold text-xs transition ${activeTab === 'energy' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-900'}`}>Energy Audit</button>
           </div>
         </div>
@@ -112,70 +107,39 @@ export default function BPApp() {
 
       <div className="max-w-5xl mx-auto pt-8 px-4">
         
+        {/* TAB 1: ASSESSMENT */}
         {activeTab === 'assessment' && (
           <div className="animate-in fade-in duration-500">
-            
-            {/* LANDING PAGE / INVITE */}
             {quizView === 'landing' && (
               <div className="max-w-4xl mx-auto py-10">
                 <div className="text-center mb-12">
-                   <h1 className="text-5xl font-black text-slate-900 mb-6 tracking-tight">Busyness <span className="text-blue-600 italic">vs</span> High Performance</h1>
+                   <h1 className="text-5xl font-black text-slate-900 mb-6 tracking-tight">The High Performance <span className="text-blue-600 italic">Quest</span></h1>
                    <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-                     Is your organization achieving real results, or just moving very fast? Most leaders mistake intensity for impact.
+                     A leadership invitation to diagnose the gap between <strong>Endless Activity</strong> and <strong>Real Results</strong>.
                    </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-                  {/* CEO INVITE */}
-                  <div className="bg-white p-10 rounded-3xl shadow-xl border-t-4 border-t-blue-600 flex flex-col justify-between">
+                  <div className="bg-white p-10 rounded-3xl shadow-xl border-t-4 border-t-blue-600 flex flex-col justify-between hover:scale-[1.01] transition-transform">
                     <div>
-                      <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-6"><Briefcase/></div>
-                      <h2 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">For CEOs & Founders</h2>
-                      <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                        Assess your leadership bandwidth and strategic clarity. Identify if you are an <strong>"Activity Leader"</strong> managing the present or an <strong>"Architect Leader"</strong> designing the future.
-                      </p>
-                      <ul className="space-y-3 mb-8 text-xs font-bold text-slate-700">
-                        <li className="flex items-center gap-2 text-blue-600"><CheckCircle2 size={14}/> Unlock the 14x Output Multiplier</li>
-                        <li className="flex items-center gap-2 text-blue-600"><CheckCircle2 size={14}/> Identify Decision Bottlenecks</li>
-                        <li className="flex items-center gap-2 text-blue-600"><CheckCircle2 size={14}/> Audit Initiative Overload</li>
-                      </ul>
+                      <Briefcase className="text-blue-600 mb-6" size={32}/>
+                      <h2 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">CEOs & Founders</h2>
+                      <p className="text-slate-500 text-sm mb-6 leading-relaxed">Assess your role as an <strong>Architect Leader</strong>. Are you creating clarity or managing the clutter?</p>
+                      <button onClick={() => {setUserRole('ceo'); setQuizView('quiz');}} className="w-full py-4 bg-blue-600 text-white rounded-xl font-black uppercase tracking-widest hover:bg-slate-900 transition-all flex items-center justify-center gap-2">Start CEO Audit <ChevronRight size={16}/></button>
                     </div>
-                    <button onClick={() => {setUserRole('ceo'); setQuizView('quiz');}} className="w-full py-4 bg-blue-600 text-white rounded-xl font-black uppercase tracking-widest hover:bg-slate-900 transition-all flex items-center justify-center gap-2">Identify as CEO <ChevronRight size={16}/></button>
                   </div>
-
-                  {/* EMPLOYEE INVITE */}
-                  <div className="bg-white p-10 rounded-3xl shadow-xl border-t-4 border-t-slate-900 flex flex-col justify-between">
+                  <div className="bg-white p-10 rounded-3xl shadow-xl border-t-4 border-t-slate-900 flex flex-col justify-between hover:scale-[1.01] transition-transform">
                     <div>
-                      <div className="w-12 h-12 bg-slate-50 text-slate-900 rounded-xl flex items-center justify-center mb-6"><Users/></div>
-                      <h2 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">For Teams & Staff</h2>
-                      <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                        Identify the hidden "Friction Points" in your daily workflow. Help your leadership team understand where energy is being wasted on "Coordination Chores" rather than performance.
-                      </p>
-                      <ul className="space-y-3 mb-8 text-xs font-bold text-slate-700">
-                        <li className="flex items-center gap-2 text-slate-900"><CheckCircle2 size={14}/> Map Execution Gaps</li>
-                        <li className="flex items-center gap-2 text-slate-900"><CheckCircle2 size={14}/> Flag Meeting Overload</li>
-                        <li className="flex items-center gap-2 text-slate-900"><CheckCircle2 size={14}/> Drive the NFR Standard</li>
-                      </ul>
+                      <Users className="text-slate-900 mb-6" size={32}/>
+                      <h2 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">Employees & Teams</h2>
+                      <p className="text-slate-500 text-sm mb-6 leading-relaxed">Identify the <strong>Friction Points</strong> stealing your focus. Help your leaders build a better system.</p>
+                      <button onClick={() => {setUserRole('employee'); setQuizView('quiz');}} className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2">Identify Friction <ChevronRight size={16}/></button>
                     </div>
-                    <button onClick={() => {setUserRole('employee'); setQuizView('quiz');}} className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2 text-sm">Contribute as Employee <ChevronRight size={16}/></button>
                   </div>
-                </div>
-
-                <div className="bg-slate-100 rounded-3xl p-8 text-center border border-slate-200">
-                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Topics covered in this audit</h3>
-                   <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-[10px] font-black text-slate-600">
-                      <span>STRATEGIC CLARITY</span>
-                      <span>INITIATIVE DISCIPLINE</span>
-                      <span>DECISION VELOCITY</span>
-                      <span>NFR STANDARD</span>
-                      <span>MEETING HYGIENE</span>
-                      <span>ACCOUNTABILITY</span>
-                   </div>
                 </div>
               </div>
             )}
 
-            {/* QUIZ VIEW */}
             {quizView === 'quiz' && (
               <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-2xl p-8 md:p-12 border border-slate-100">
                 <div className="flex justify-between items-center mb-8 text-[10px] font-bold uppercase tracking-widest">
@@ -188,126 +152,13 @@ export default function BPApp() {
                     <button key={val} onClick={() => handleAnswer(val)} className="h-16 md:h-20 border-2 border-slate-50 rounded-2xl flex items-center justify-center hover:border-blue-600 hover:bg-blue-50 transition-all font-black text-2xl text-slate-200 hover:text-blue-600 active:scale-95">{val}</button>
                   ))}
                 </div>
-                <div className="flex justify-between mt-8 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                  <span>Strongly Disagree</span>
-                  <div className="flex items-center gap-1"><Zap size={10} className="fill-slate-400"/> Choose Reality over Aspiration</div>
-                  <span>Strongly Agree</span>
-                </div>
               </div>
             )}
 
-            {/* RESULTS VIEW / REPORT */}
             {quizView === 'results' && (
               <div className="space-y-8 pb-20">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  
-                  {/* Left Column: Verdict */}
                   <div className="lg:col-span-1 space-y-6">
                     <div className="bg-white rounded-3xl shadow-xl p-8 border border-slate-100 text-center">
-                      <h2 className="text-slate-400 font-bold uppercase text-xs mb-2 tracking-widest">Your BP Score</h2>
-                      <div className="text-8xl font-black text-slate-900 mb-2">{totalScore}</div>
-                      <div className="text-[10px] font-bold text-slate-300 mb-8 tracking-widest uppercase">Max Result: 125</div>
-                      <div className={`py-3 px-6 rounded-2xl font-black text-sm uppercase tracking-tighter ${getStatus(totalScore).color} bg-slate-50 border border-slate-100`}>
-                        {getStatus(totalScore).label} Organization
-                      </div>
-                    </div>
-
-                    <button onClick={handleDownload} className="w-full no-print bg-slate-900 text-white py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg hover:scale-[1.02] transition-transform">
-                      <Download size={20}/> Download Report (PDF)
-                    </button>
-                  </div>
-
-                  {/* Center/Right: Radar Profile */}
-                  <div className="lg:col-span-2 bg-white rounded-3xl shadow-xl p-10 border border-slate-100 flex flex-col items-center">
-                    <h3 className="text-2xl font-black text-slate-900 mb-2 self-start tracking-tight">Organization Profile</h3>
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest self-start mb-8">Performance Dimensions Map</p>
-                    <div className="w-full max-w-sm">
-                      <Radar 
-                        data={{ labels: DIMENSIONS, datasets: [{ label: 'Score', data: dimensionScores, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 1)', borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#ef4444' }] }} 
-                        options={{ scales: { r: { min: 0, max: 10, ticks: { display: false }, grid: { color: '#f1f5f9' }, angleLines: { color: '#f1f5f9' } } }, plugins: { legend: { display: false } } }} 
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* COACHING GUIDANCE SECTION */}
-                <div className="bg-white rounded-3xl shadow-xl p-10 border border-slate-100">
-                  <h3 className="text-2xl font-black text-slate-900 mb-8 border-b border-slate-50 pb-6">Executive Coaching & Guidance</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    <div>
-                      <h4 className="text-blue-600 font-black text-xs uppercase tracking-widest mb-4">Immediate Actions</h4>
-                      <ul className="space-y-6">
-                        {dimensionScores[0] < 6 && (
-                          <li className="flex gap-4">
-                            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex-shrink-0 flex items-center justify-center font-black">1</div>
-                            <div>
-                              <p className="font-bold text-slate-900 text-sm">Run a Strategy Clarity Session</p>
-                              <p className="text-xs text-slate-500 mt-1 italic">"Every team currently has its own parallel strategy. Fix the alignment deficit first."</p>
-                            </div>
-                          </li>
-                        )}
-                        {dimensionScores[2] < 6 && (
-                          <li className="flex gap-4">
-                            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex-shrink-0 flex items-center justify-center font-black">2</div>
-                            <div>
-                              <p className="font-bold text-slate-900 text-sm">Apply the Initiative Pipeline Rule</p>
-                              <p className="text-xs text-slate-500 mt-1 italic">"You are attempting too much at 3% effort. Hard-cap your project list at 5 items."</p>
-                            </div>
-                          </li>
-                        )}
-                        <li className="flex gap-4">
-                          <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex-shrink-0 flex items-center justify-center font-black">3</div>
-                          <div>
-                            <p className="font-bold text-slate-900 text-sm">Establish the NFR Protocol</p>
-                            <p className="text-xs text-slate-500 mt-1 italic">"Reduce coordination load by enforcing proactive updates before they are requested."</p>
-                          </div>
-                        </li>
-                      </ul>
-                    </div>
-                    
-                    <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100">
-                       <h4 className="font-black text-xs uppercase tracking-widest mb-4">Connect with Management Innovations</h4>
-                       <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                         To receive the full 18-month Transformation Roadmap or to schedule a diagnostic workshop with <strong>Manoj Onkar</strong>, contact us today.
-                       </p>
-                       <div className="space-y-3 font-bold text-xs">
-                          <a href="mailto:manoj@managementinnovations.co.in" className="flex items-center gap-3 text-slate-700 hover:text-blue-600 transition-colors"><Mail size={16}/> manoj@managementinnovations.co.in</a>
-                          <a href="https://www.inventleadership.com" target="_blank" className="flex items-center gap-3 text-slate-700 hover:text-blue-600 transition-colors"><Globe size={16}/> www.inventleadership.com</a>
-                          <a href="https://www.managementinnovations.co.in" target="_blank" className="flex items-center gap-3 text-slate-700 hover:text-blue-600 transition-colors"><Globe size={16}/> www.managementinnovations.co.in</a>
-                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ENERGY AUDIT TAB */}
-        {activeTab === 'energy' && (
-           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-             <div className="bg-white rounded-3xl shadow-xl p-10 border border-slate-100 text-center mb-10 max-w-2xl mx-auto">
-                <h2 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tight">The 14x Leadership Yield</h2>
-                <p className="text-slate-500 text-sm">Measure your weekly energy conversion. High Performance leaders channel 70% of energy into strategy.</p>
-             </div>
-             {/* [Existing Energy Audit logic code from previous step inserted here] */}
-             <div className="bg-blue-600 rounded-3xl p-10 text-white text-center">
-                <p className="font-bold opacity-80 uppercase text-[10px] tracking-[0.2em] mb-4">Module Implementation Pending</p>
-                <button onClick={() => setActiveTab('assessment')} className="bg-white text-blue-600 px-10 py-3 rounded-xl font-black">Go to Audit</button>
-             </div>
-           </div>
-        )}
-
-      </div>
-
-      {/* FOOTER FOR PRINT ONLY */}
-      <footer className="hidden print:block fixed bottom-0 left-0 right-0 p-8 border-t border-slate-100 bg-white">
-         <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-            <div>© Management Innovations | Manoj Onkar</div>
-            <div>Generated by BP Architect Engine</div>
-            <div>www.managementinnovations.co.in</div>
-         </div>
-      </footer>
-    </div>
-  );
-}
+                      <h2 className="text-slate-400 font-bold uppercase text-xs mb-2 tracking-widest">Assessment Result</h2>
+                      <div className="text-8xl font-black text-slate-
