@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Radar } from 'react-chartjs-2';
 import { 
   Trophy, Activity, Zap, Target, AlertCircle, 
   RefreshCcw, BarChart3, Scissors, 
-  LayoutDashboard, Plus, Trash2, Clock, Timer, CheckCircle2, HelpCircle, ChevronRight
+  LayoutDashboard, Plus, Trash2, Clock, Timer, CheckCircle2, HelpCircle, ChevronRight, Download, Mail, Globe, Users, Briefcase
 } from 'lucide-react';
 import {
   Chart as ChartJS, RadialLinearScale, PointElement, 
@@ -24,7 +24,7 @@ const QUESTIONS = [
   { id: 8, text: "Junior staff know exactly what they can decide without asking permission.", dim: "Decision Effectiveness" },
   { id: 9, text: "Most meetings end with a clear decision log rather than a 'follow-up' meeting.", dim: "Meeting Discipline" },
   { id: 10, text: "We regularly cancel recurring meetings that have lost their purpose.", dim: "Meeting Discipline" },
-  { id: 11, text: "Every major goal has ONE name attached to it, not a committee.", dim: "Accountability" },
+  { id: 11, text: "Every major goal has ONE name attached to it, not a department or committee.", dim: "Accountability" },
   { id: 12, text: "Underperformance is confronted directly and kindly, never ignored.", dim: "Accountability" },
   { id: 13, text: "We protect 'Thinking Time' as a non-negotiable part of the work week.", dim: "Org Learning" },
   { id: 14, text: "We celebrate 'Clean Failures' as much as we celebrate safe successes.", dim: "Org Learning" },
@@ -45,23 +45,17 @@ const DIMENSIONS = ["Leadership Clarity", "Strategic Focus", "Initiative Discipl
 
 export default function BPApp() {
   const [activeTab, setActiveTab] = useState('assessment');
-  
-  // Assessment State
-  const [quizView, setQuizView] = useState('welcome'); 
+  const [userRole, setUserRole] = useState(null); // 'ceo' or 'employee'
+  const [quizView, setQuizView] = useState('landing'); 
   const [answers, setAnswers] = useState({});
   const [currentIdx, setCurrentIdx] = useState(0);
   
-  // Pruner State
-  const [initiatives, setInitiatives] = useState([]);
-  const [newInit, setNewInit] = useState("");
-
-  // Energy Audit State
+  // Refined Energy Audit State
   const [energy, setEnergy] = useState({
     block1: false, block2: false, mtgHours: 15, mtgQuality: 60,
     nfrChasing: 5, peopleStrategic: 5, peopleOperational: 5, reactive: 10
   });
 
-  // Logic: Assessment
   const handleAnswer = (value) => {
     const newAnswers = { ...answers, [QUESTIONS[currentIdx].id]: value };
     setAnswers(newAnswers);
@@ -79,197 +73,181 @@ export default function BPApp() {
 
   const totalScore = Object.values(answers).reduce((a, b) => a + b, 0);
 
-  // Logic: Energy Audit
-  const auditResults = useMemo(() => {
-    const totalPossibleStrategic = (energy.block1 ? 2 : 0) + (energy.block2 ? 2 : 0) + (energy.mtgHours * (energy.mtgQuality/100)) + energy.peopleStrategic;
-    const totalWaste = (energy.mtgHours * (1 - energy.mtgQuality/100)) + energy.nfrChasing + energy.peopleOperational + energy.reactive;
-    const totalHours = totalPossibleStrategic + totalWaste;
-    const capacityScore = totalHours > 0 ? Math.round((totalPossibleStrategic / totalHours) * 100) : 0;
-    return { strategic: totalPossibleStrategic.toFixed(1), waste: totalWaste.toFixed(1), score: capacityScore };
-  }, [energy]);
+  const getStatus = (score) => {
+    const max = 125;
+    if (score <= 50) return { label: "IDLE", color: "text-gray-500", desc: "Strategic Awakening Required" };
+    if (score <= 75) return { label: "BUSY", color: "text-red-600", desc: "The Activity Trap" };
+    if (score <= 100) return { label: "EFFICIENT", color: "text-blue-600", desc: "Functional Stability" };
+    return { label: "HIGH PERFORMANCE", color: "text-green-600", desc: "Exceptional Alignment" };
+  };
+
+  const handleDownload = () => {
+    window.print();
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-20">
-      {/* GLOBAL NAVIGATION */}
-      <nav className="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-lg">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2 font-black text-xl tracking-tighter cursor-pointer" onClick={() => setActiveTab('assessment')}>
-            <Zap className="text-blue-400 fill-blue-400" /> BP ARCHITECT
+    <div className="min-h-screen bg-slate-50 font-sans pb-20 print:bg-white print:pb-0">
+      
+      {/* HEADER & BRANDING */}
+      <header className="bg-white border-b border-slate-100 p-4 sticky top-0 z-50 shadow-sm print:relative">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col">
+                <span className="text-[10px] font-black text-red-600 tracking-[0.2em] uppercase">Management Innovations</span>
+                <span className="text-[8px] font-bold text-slate-400 tracking-widest uppercase">Vision to Implementation</span>
+            </div>
+            <div className="h-8 w-[1px] bg-slate-200 hidden md:block"></div>
+            <div className="hidden md:flex items-center gap-2">
+                <span className="text-xl font-black italic tracking-tighter text-slate-900">ODeX</span>
+                <span className="text-[8px] font-bold text-slate-500 uppercase leading-tight w-20">Extraordinary Organizations</span>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => setActiveTab('assessment')} className={`px-4 py-2 rounded-lg font-bold text-xs transition ${activeTab === 'assessment' ? 'bg-blue-600' : 'text-slate-400 hover:text-white'}`}>Audit</button>
-            <button onClick={() => setActiveTab('pruner')} className={`px-4 py-2 rounded-lg font-bold text-xs transition ${activeTab === 'pruner' ? 'bg-blue-600' : 'text-slate-400 hover:text-white'}`}>Pruner</button>
-            <button onClick={() => setActiveTab('energy')} className={`px-4 py-2 rounded-lg font-bold text-xs transition ${activeTab === 'energy' ? 'bg-blue-600' : 'text-slate-400 hover:text-white'}`}>Energy</button>
+          
+          <div className="flex gap-2 no-print">
+            <button onClick={() => {setQuizView('landing'); setActiveTab('assessment');}} className={`px-4 py-2 rounded-lg font-bold text-xs transition ${activeTab === 'assessment' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-900'}`}>The Assessment</button>
+            <button onClick={() => setActiveTab('energy')} className={`px-4 py-2 rounded-lg font-bold text-xs transition ${activeTab === 'energy' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-900'}`}>Energy Audit</button>
           </div>
         </div>
-      </nav>
+      </header>
 
-      <div className="max-w-5xl mx-auto pt-10 px-4">
+      <div className="max-w-5xl mx-auto pt-8 px-4">
         
-        {/* TAB 1: ASSESSMENT */}
         {activeTab === 'assessment' && (
           <div className="animate-in fade-in duration-500">
-            {quizView === 'welcome' && (
-              <div className="max-w-xl mx-auto bg-white rounded-3xl shadow-xl p-10 text-center border border-slate-100 mt-10">
-                <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6 text-blue-600"><BarChart3 size={32}/></div>
-                <h1 className="text-4xl font-black text-slate-900 mb-4">Fast-Track Diagnosis</h1>
-                <p className="text-slate-600 mb-8 leading-relaxed italic">"Diagnose the gap between being busy and being high-performing in 5 minutes."</p>
-                <button onClick={() => setQuizView('quiz')} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-2">Start 25-Question Audit <ChevronRight size={18}/></button>
+            
+            {/* LANDING PAGE / INVITE */}
+            {quizView === 'landing' && (
+              <div className="max-w-4xl mx-auto py-10">
+                <div className="text-center mb-12">
+                   <h1 className="text-5xl font-black text-slate-900 mb-6 tracking-tight">Busyness <span className="text-blue-600 italic">vs</span> High Performance</h1>
+                   <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                     Is your organization achieving real results, or just moving very fast? Most leaders mistake intensity for impact.
+                   </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+                  {/* CEO INVITE */}
+                  <div className="bg-white p-10 rounded-3xl shadow-xl border-t-4 border-t-blue-600 flex flex-col justify-between">
+                    <div>
+                      <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-6"><Briefcase/></div>
+                      <h2 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">For CEOs & Founders</h2>
+                      <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                        Assess your leadership bandwidth and strategic clarity. Identify if you are an <strong>"Activity Leader"</strong> managing the present or an <strong>"Architect Leader"</strong> designing the future.
+                      </p>
+                      <ul className="space-y-3 mb-8 text-xs font-bold text-slate-700">
+                        <li className="flex items-center gap-2 text-blue-600"><CheckCircle2 size={14}/> Unlock the 14x Output Multiplier</li>
+                        <li className="flex items-center gap-2 text-blue-600"><CheckCircle2 size={14}/> Identify Decision Bottlenecks</li>
+                        <li className="flex items-center gap-2 text-blue-600"><CheckCircle2 size={14}/> Audit Initiative Overload</li>
+                      </ul>
+                    </div>
+                    <button onClick={() => {setUserRole('ceo'); setQuizView('quiz');}} className="w-full py-4 bg-blue-600 text-white rounded-xl font-black uppercase tracking-widest hover:bg-slate-900 transition-all flex items-center justify-center gap-2">Identify as CEO <ChevronRight size={16}/></button>
+                  </div>
+
+                  {/* EMPLOYEE INVITE */}
+                  <div className="bg-white p-10 rounded-3xl shadow-xl border-t-4 border-t-slate-900 flex flex-col justify-between">
+                    <div>
+                      <div className="w-12 h-12 bg-slate-50 text-slate-900 rounded-xl flex items-center justify-center mb-6"><Users/></div>
+                      <h2 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">For Teams & Staff</h2>
+                      <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                        Identify the hidden "Friction Points" in your daily workflow. Help your leadership team understand where energy is being wasted on "Coordination Chores" rather than performance.
+                      </p>
+                      <ul className="space-y-3 mb-8 text-xs font-bold text-slate-700">
+                        <li className="flex items-center gap-2 text-slate-900"><CheckCircle2 size={14}/> Map Execution Gaps</li>
+                        <li className="flex items-center gap-2 text-slate-900"><CheckCircle2 size={14}/> Flag Meeting Overload</li>
+                        <li className="flex items-center gap-2 text-slate-900"><CheckCircle2 size={14}/> Drive the NFR Standard</li>
+                      </ul>
+                    </div>
+                    <button onClick={() => {setUserRole('employee'); setQuizView('quiz');}} className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2 text-sm">Contribute as Employee <ChevronRight size={16}/></button>
+                  </div>
+                </div>
+
+                <div className="bg-slate-100 rounded-3xl p-8 text-center border border-slate-200">
+                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Topics covered in this audit</h3>
+                   <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-[10px] font-black text-slate-600">
+                      <span>STRATEGIC CLARITY</span>
+                      <span>INITIATIVE DISCIPLINE</span>
+                      <span>DECISION VELOCITY</span>
+                      <span>NFR STANDARD</span>
+                      <span>MEETING HYGIENE</span>
+                      <span>ACCOUNTABILITY</span>
+                   </div>
+                </div>
               </div>
             )}
+
+            {/* QUIZ VIEW */}
             {quizView === 'quiz' && (
-              <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-2xl p-8 border border-slate-100">
+              <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-2xl p-8 md:p-12 border border-slate-100">
                 <div className="flex justify-between items-center mb-8 text-[10px] font-bold uppercase tracking-widest">
                   <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full">{QUESTIONS[currentIdx].dim}</span>
                   <span className="text-slate-300">{currentIdx + 1} / 25</span>
                 </div>
-                <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-12 leading-tight min-h-[100px]">{QUESTIONS[currentIdx].text}</h2>
+                <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-12 leading-tight min-h-[120px]">{QUESTIONS[currentIdx].text}</h2>
                 <div className="grid grid-cols-5 gap-3">
                   {[1, 2, 3, 4, 5].map((val) => (
-                    <button key={val} onClick={() => handleAnswer(val)} className="h-16 md:h-20 border-2 border-slate-50 rounded-2xl flex items-center justify-center hover:border-blue-600 hover:bg-blue-50 transition-all font-black text-xl text-slate-300 hover:text-blue-600 active:scale-95">{val}</button>
+                    <button key={val} onClick={() => handleAnswer(val)} className="h-16 md:h-20 border-2 border-slate-50 rounded-2xl flex items-center justify-center hover:border-blue-600 hover:bg-blue-50 transition-all font-black text-2xl text-slate-200 hover:text-blue-600 active:scale-95">{val}</button>
                   ))}
                 </div>
-                <div className="flex justify-between mt-6 text-[10px] font-black text-slate-400 uppercase tracking-widest"><span>Strongly Disagree</span><span>Strongly Agree</span></div>
+                <div className="flex justify-between mt-8 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                  <span>Strongly Disagree</span>
+                  <div className="flex items-center gap-1"><Zap size={10} className="fill-slate-400"/> Choose Reality over Aspiration</div>
+                  <span>Strongly Agree</span>
+                </div>
               </div>
             )}
+
+            {/* RESULTS VIEW / REPORT */}
             {quizView === 'results' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="bg-white rounded-3xl shadow-xl p-8 text-center border border-slate-100 h-fit">
-                  <h2 className="text-slate-500 font-bold uppercase text-xs mb-2">Total Score</h2>
-                  <div className="text-8xl font-black text-slate-900 mb-4">{totalScore}</div>
-                  <div className="text-xs font-bold text-slate-400 mb-8 italic">Max Possible: 125</div>
-                  <button onClick={() => {setQuizView('welcome'); setAnswers({}); setCurrentIdx(0);}} className="flex items-center justify-center gap-2 w-full py-3 bg-slate-50 rounded-xl text-slate-400 hover:text-blue-600 font-bold transition-all"><RefreshCcw size={16}/> Re-Audit</button>
-                </div>
-                <div className="lg:col-span-2 bg-white rounded-3xl shadow-xl p-8 border border-slate-100 flex flex-col items-center">
-                  <h3 className="text-xl font-black text-slate-900 mb-8 self-start">The BP Score Profile</h3>
-                  <div className="w-full max-w-sm"><Radar data={{ labels: DIMENSIONS, datasets: [{ label: 'Score', data: dimensionScores, backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 1)', pointBackgroundColor: '#3b82f6' }] }} options={{ scales: { r: { min: 0, max: 10, ticks: { display: false } } }, plugins: { legend: { display: false } } }} /></div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 2: PRUNER */}
-        {activeTab === 'pruner' && (
-          <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="bg-white rounded-3xl shadow-xl p-8 border border-slate-100 mb-8">
-              <h2 className="text-2xl font-black mb-2 text-slate-900">Initiative Pruner</h2>
-              <p className="text-slate-500 text-sm mb-6 italic">"A strategy that does not tell you what to stop doing is not a real strategy."</p>
-              <div className="flex gap-2">
-                <input value={newInit} onKeyDown={(e) => e.key === 'Enter' && newInit && setInitiatives([...initiatives, {id: Date.now(), name: newInit, status: 'pending'}])} onChange={(e) => setNewInit(e.target.value)} placeholder="Type project name..." className="flex-1 bg-slate-50 border border-slate-200 p-4 rounded-xl outline-none focus:border-blue-500 font-medium" />
-                <button onClick={() => {if(newInit) {setInitiatives([...initiatives, {id: Date.now(), name: newInit, status: 'pending'}]); setNewInit("");}}} className="bg-slate-900 text-white px-6 rounded-xl font-bold hover:bg-blue-600 transition-all"><Plus/></button>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {initiatives.map(item => (
-                <div key={item.id} className={`bg-white p-6 rounded-2xl shadow-sm border transition-all ${item.status === 'STOP' ? 'border-red-200 bg-red-50 opacity-60' : 'border-slate-100'}`}>
-                  <div className="flex justify-between items-start mb-4">
-                    <span className={`font-bold text-lg leading-tight ${item.status === 'STOP' ? 'line-through text-red-800' : 'text-slate-800'}`}>{item.name}</span>
-                    <button onClick={() => setInitiatives(initiatives.filter(i => i.id !== item.id))} className="text-slate-300 hover:text-red-500"><Trash2 size={16}/></button>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {['STOP', 'TRANSFORM', 'REVIEW', 'ACCELERATE'].map(s => (
-                      <button key={s} onClick={() => setInitiatives(initiatives.map(i => i.id === item.id ? {...i, status: s} : i))} className={`text-[9px] px-2 py-1.5 rounded font-black transition-all ${item.status === s ? 'bg-slate-900 text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:bg-slate-200'}`}>{s}</button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            {initiatives.length > 0 && (
-              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-10 py-5 rounded-2xl shadow-2xl flex items-center gap-8 border border-slate-800 animate-in slide-in-from-bottom-10">
-                <div className="text-center"><div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Items Removed</div><div className="text-2xl font-black text-red-400">{initiatives.filter(i => i.status === 'STOP').length}</div></div>
-                <div className="h-10 w-[1px] bg-slate-700"></div>
-                <div className="text-center"><div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Org Capacity Freed</div><div className="text-2xl font-black text-green-400">{initiatives.filter(i => i.status === 'STOP').length * 10}%</div></div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 3: ENERGY AUDIT */}
-        {activeTab === 'energy' && (
-          <div className="animate-in slide-in-from-bottom-4 duration-700">
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-6">
-                <div className="bg-white rounded-3xl shadow-xl p-8 border border-slate-100">
-                  <h2 className="text-2xl font-black text-slate-900 mb-2">Energy Quality Audit</h2>
-                  <p className="text-slate-500 text-sm mb-8 italic">"The difference between a busy leader and a high-performer is allocation."</p>
-
-                  <div className="space-y-10">
-                    <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100">
-                      <h3 className="font-bold text-blue-900 uppercase text-[10px] tracking-[0.2em] mb-4">Architect's 2x2 Thinking Blocks</h3>
-                      <div className="grid grid-cols-2 gap-4 text-sm font-bold">
-                        <button onClick={() => setEnergy({...energy, block1: !energy.block1})} className={`p-4 rounded-xl flex items-center gap-3 transition-all ${energy.block1 ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-400 border border-slate-200'}`}>{energy.block1 ? <CheckCircle2 /> : <div className="w-5 h-5 rounded-full border-2 border-slate-100"/>} Session 1 (2h)</button>
-                        <button onClick={() => setEnergy({...energy, block2: !energy.block2})} className={`p-4 rounded-xl flex items-center gap-3 transition-all ${energy.block2 ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-slate-400 border border-slate-200'}`}>{energy.block2 ? <CheckCircle2 /> : <div className="w-5 h-5 rounded-full border-2 border-slate-100"/>} Session 2 (2h)</button>
+              <div className="space-y-8 pb-20">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  
+                  {/* Left Column: Verdict */}
+                  <div className="lg:col-span-1 space-y-6">
+                    <div className="bg-white rounded-3xl shadow-xl p-8 border border-slate-100 text-center">
+                      <h2 className="text-slate-400 font-bold uppercase text-xs mb-2 tracking-widest">Your BP Score</h2>
+                      <div className="text-8xl font-black text-slate-900 mb-2">{totalScore}</div>
+                      <div className="text-[10px] font-bold text-slate-300 mb-8 tracking-widest uppercase">Max Result: 125</div>
+                      <div className={`py-3 px-6 rounded-2xl font-black text-sm uppercase tracking-tighter ${getStatus(totalScore).color} bg-slate-50 border border-slate-100`}>
+                        {getStatus(totalScore).label} Organization
                       </div>
                     </div>
 
+                    <button onClick={handleDownload} className="w-full no-print bg-slate-900 text-white py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg hover:scale-[1.02] transition-transform">
+                      <Download size={20}/> Download Report (PDF)
+                    </button>
+                  </div>
+
+                  {/* Center/Right: Radar Profile */}
+                  <div className="lg:col-span-2 bg-white rounded-3xl shadow-xl p-10 border border-slate-100 flex flex-col items-center">
+                    <h3 className="text-2xl font-black text-slate-900 mb-2 self-start tracking-tight">Organization Profile</h3>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest self-start mb-8">Performance Dimensions Map</p>
+                    <div className="w-full max-w-sm">
+                      <Radar 
+                        data={{ labels: DIMENSIONS, datasets: [{ label: 'Score', data: dimensionScores, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 1)', borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#ef4444' }] }} 
+                        options={{ scales: { r: { min: 0, max: 10, ticks: { display: false }, grid: { color: '#f1f5f9' }, angleLines: { color: '#f1f5f9' } } }, plugins: { legend: { display: false } } }} 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* COACHING GUIDANCE SECTION */}
+                <div className="bg-white rounded-3xl shadow-xl p-10 border border-slate-100">
+                  <h3 className="text-2xl font-black text-slate-900 mb-8 border-b border-slate-50 pb-6">Executive Coaching & Guidance</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div>
-                      <div className="flex justify-between items-end mb-4">
-                        <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-[0.2em]">Meetings (Decisions vs Updates)</h3>
-                        <div className="text-xl font-black text-blue-600">{energy.mtgQuality}% Yield</div>
-                      </div>
-                      <div className="flex gap-8 items-center">
-                        <div className="flex-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Hours per week</label>
-                          <input type="range" min="0" max="40" value={energy.mtgHours} onChange={(e) => setEnergy({...energy, mtgHours: parseInt(e.target.value)})} className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900" />
-                          <div className="text-xs font-bold mt-1 text-slate-600">{energy.mtgHours}h Total</div>
-                        </div>
-                        <div className="flex-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">% Quality Discussion</label>
-                          <input type="range" min="0" max="100" value={energy.mtgQuality} onChange={(e) => setEnergy({...energy, mtgQuality: parseInt(e.target.value)})} className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-4 border-t border-slate-50">
-                      <div>
-                        <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-[0.2em] mb-4 text-red-500">NFR Chasing Tax (Leakage)</h3>
-                        <input type="range" min="0" max="20" value={energy.nfrChasing} onChange={(e) => setEnergy({...energy, nfrChasing: parseInt(e.target.value)})} className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-red-500" />
-                        <div className="flex justify-between text-[10px] font-bold mt-2"><span className="text-slate-400 uppercase">Following Up</span><span className="text-red-500 font-black">{energy.nfrChasing}h</span></div>
-                      </div>
-                      <div>
-                        <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-[0.2em] mb-4">People Investment</h3>
-                        <div className="space-y-4">
-                           <div>
-                             <input type="range" min="0" max="20" value={energy.peopleStrategic} onChange={(e) => setEnergy({...energy, peopleStrategic: parseInt(e.target.value)})} className="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-green-500" />
-                             <div className="flex justify-between text-[9px] font-bold mt-1 text-green-600 uppercase tracking-tighter"><span>Strategic Mentoring</span><span>{energy.peopleStrategic}h</span></div>
-                           </div>
-                           <div>
-                             <input type="range" min="0" max="20" value={energy.peopleOperational} onChange={(e) => setEnergy({...energy, peopleOperational: parseInt(e.target.value)})} className="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-orange-400" />
-                             <div className="flex justify-between text-[9px] font-bold mt-1 text-orange-500 uppercase tracking-tighter"><span>Operational Chores</span><span>{energy.peopleOperational}h</span></div>
-                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-2xl">
-                  <h3 className="text-blue-400 font-bold uppercase text-[10px] tracking-[0.2em] mb-2">Strategic Yield</h3>
-                  <div className="text-7xl font-black mb-2">{auditResults.score}%</div>
-                  <p className="text-slate-500 text-[10px] font-bold leading-relaxed mb-8 uppercase tracking-widest">Efficiency Benchmark</p>
-                  <div className="grid grid-cols-2 gap-4 border-t border-slate-800 pt-6">
-                    <div><div className="text-[10px] font-bold text-slate-500 uppercase mb-1">High Value</div><div className="text-xl font-black text-green-400">{auditResults.strategic}h</div></div>
-                    <div><div className="text-[10px] font-bold text-slate-500 uppercase mb-1">Leakage</div><div className="text-xl font-black text-red-400">{auditResults.waste}h</div></div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-xl border-l-4 border-l-blue-600">
-                  <h4 className="font-black text-slate-900 mb-4 flex items-center gap-2 text-xs uppercase tracking-widest"><Zap size={14} className="text-blue-600 fill-blue-600"/> Coaching Insight</h4>
-                  <div className="text-sm text-slate-600 leading-relaxed space-y-4 font-medium">
-                    {energy.nfrChasing > 3 && <p>🚨 <span className="text-slate-900 font-bold">The NFR Standard:</span> Chasing people for {energy.nfrChasing} hours is a signal that your accountability systems are leaking energy. Imagine if this time was reinvested in your top priority.</p>}
-                    {energy.mtgQuality < 70 && <p>💡 <span className="text-slate-900 font-bold">Meeting Pivot:</span> Many of your meetings are for information sharing, not decisions. Can these become 5-minute written updates?</p>}
-                    {!energy.block1 || !energy.block2 ? <p>⏳ <span className="text-slate-900 font-bold">The 2x2 Challenge:</span> You haven't secured your 4 hours of Thinking Time. This is your most valuable work—protect it like a board meeting.</p> : <p className="text-green-600 font-bold">✅ You are modeling 'Architect Leadership' by protecting your thinking blocks. This builds organizational clarity.</p>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-      </div>
-    </div>
-  );
-}
+                      <h4 className="text-blue-600 font-black text-xs uppercase tracking-widest mb-4">Immediate Actions</h4>
+                      <ul className="space-y-6">
+                        {dimensionScores[0] < 6 && (
+                          <li className="flex gap-4">
+                            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex-shrink-0 flex items-center justify-center font-black">1</div>
+                            <div>
+                              <p className="font-bold text-slate-900 text-sm">Run a Strategy Clarity Session</p>
+                              <p className="text-xs text-slate-500 mt-1 italic">"Every team currently has its own parallel strategy. Fix the alignment deficit first."</p>
+                            </div>
+                          </li>
+                        )}
+                        {dimensionScores[2] < 6 && (
+                          <li className="flex gap-4">
+                            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex-shrink-0 flex items-center justify-center font-black">2</div>
+                            <div>
+                              <p className="font-bold text-slate-900 text-sm">Apply the Initiative Pipeline Rule</p>
